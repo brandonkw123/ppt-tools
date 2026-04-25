@@ -1,0 +1,39 @@
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui">
+  <ribbon>
+    <tabs>
+      <tab id="tabPPTTools" label="PPT Tools">
+
+        <group id="grpPosition" label="Position">
+          <button id="btnSwapPositions"     label="Swap Positions"  size="large" onAction="SwapPositions"  imageMso="ObjectsReorder"/>
+          <button id="btnCopyPosition"      label="Copy Position"   size="large" onAction="CopyPosition"   imageMso="Copy"/>
+          <button id="btnPastePosition"     label="Paste Position"  size="large" onAction="PastePosition"  imageMso="Paste"/>
+        </group>
+
+        <group id="grpSize" label="Size">
+          <button id="btnMatchWidth"        label="Match Width"         size="normal" onAction="MatchWidth"        imageMso="ObjectWidth"/>
+          <button id="btnMatchHeight"       label="Match Height"        size="normal" onAction="MatchHeight"       imageMso="ObjectHeight"/>
+          <button id="btnMatchWidthHeight"  label="Match Width + Height" size="normal" onAction="MatchWidthAndHeight" imageMso="ObjectSizeAndPosition"/>
+          <separator id="sepSize1"/>
+          <button id="btnCopySize"          label="Copy Size"           size="normal" onAction="CopySize"          imageMso="Copy"/>
+          <button id="btnPasteWidth"        label="Paste Width"         size="normal" onAction="PasteWidth"        imageMso="ObjectWidth"/>
+          <button id="btnPasteHeight"       label="Paste Height"        size="normal" onAction="PasteHeight"       imageMso="ObjectHeight"/>
+          <button id="btnPasteWidthHeight"  label="Paste Width + Height" size="normal" onAction="PasteWidthAndHeight" imageMso="ObjectSizeAndPosition"/>
+        </group>
+
+        <group id="grpStretch" label="Stretch">
+          <button id="btnStretchUp"         label="Stretch Up"    size="large" onAction="StretchUp"    imageMso="ObjectsAlignTop"/>
+          <button id="btnStretchDown"       label="Stretch Down"  size="large" onAction="StretchDown"  imageMso="ObjectsAlignBottom"/>
+          <button id="btnStretchLeft"       label="Stretch Left"  size="large" onAction="StretchLeft"  imageMso="ObjectsAlignLeft"/>
+          <button id="btnStretchRight"      label="Stretch Right" size="large" onAction="StretchRight" imageMso="ObjectsAlignRight"/>
+        </group>
+
+        <group id="grpUtilities" label="Utilities">
+          <button id="btnEmailSlides"       label="Email Selected Slides" size="large" onAction="EmailSelectedSlides" imageMso="SendToMail"/>
+          <button id="btnEmailDeck"         label="Email Whole Deck"      size="large" onAction="EmailWholeDeck"      imageMso="SendToMail"/>
+          <button id="btnConvertPDF"        label="Convert to PDF"        size="large" onAction="ConvertToPDF"        imageMso="ExportToPDF"/>
+        </group>
+
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
