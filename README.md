@@ -16,13 +16,13 @@ A custom PowerPoint ribbon add-in that adds fast, keyboard-friendly commands for
 ### Size
 | Command | Behavior |
 |---|---|
-| Match Width | Resizes all selected shapes to the width of the first selected |
-| Match Height | Resizes all selected shapes to the height of the first selected |
-| Match Width + Height | Resizes all selected shapes to the width and height of the first selected |
-| Copy Size | Stores the width and height of the selected shape |
+| Match Width to Selected | Resizes all selected shapes to the width of the first selected |
+| Match Height to Selected | Resizes all selected shapes to the height of the first selected |
+| Match Width & Height to Selected | Resizes all selected shapes to the width and height of the first selected |
+| Copy Height & Width | Stores the width and height of the selected shape |
 | Paste Width | Applies stored width to all selected shapes |
 | Paste Height | Applies stored height to all selected shapes |
-| Paste Width + Height | Applies stored width and height to all selected shapes |
+| Paste Height & Width | Applies stored width and height to all selected shapes |
 
 ### Stretch
 | Command | Behavior |
@@ -37,83 +37,101 @@ A custom PowerPoint ribbon add-in that adds fast, keyboard-friendly commands for
 |---|---|
 | Email Selected Slides | Exports slides selected in the slide panel to a new .pptx and opens an Outlook draft with it attached |
 | Email Whole Deck | Saves the current presentation and opens an Outlook draft with it attached |
-| Convert to PDF | One-click export to PDF, saved in the same folder as the presentation |
-
----
-
-## Requirements
-
-- Microsoft PowerPoint (Windows)
-- Microsoft Outlook (for email commands)
-- Macros must be enabled
-
----
-
-## Installation
-
-### 1 — Download the files
-
-Download or clone this repository.
-
-### 2 — Import the VBA Modules
-
-1. Open PowerPoint and create a new blank presentation
-2. Save it as a **PowerPoint Macro-Enabled Presentation (.pptm)** named `PPTTools.pptm`
-3. Save it to this location: `C:\Users\[You]\AppData\Roaming\Microsoft\AddIns\`
-4. Open the VBA editor via Developer tab > Visual Basic
-5. Right click your project in the left panel > Import File
-6. Import each `.bas` file from the `src/` folder in this order:
-   - `modGlobals.bas`
-   - `modPosition.bas`
-   - `modSize.bas`
-   - `modUtilities.bas`
-7. Delete the default Module1 if present (right click > Remove > No)
-8. Save and close the VBA editor
-
-### 3 — Inject the Ribbon XML
-
-1. Close `PPTTools.pptm` in PowerPoint completely
-2. Rename `PPTTools.pptm` to `PPTTools.zip`
-3. Extract all contents to a folder called `PPTTools` on your Desktop
-4. Inside that folder, create a new folder called `customUI`
-5. Copy `ribbon/customUI.xml` into that `customUI` folder
-6. Open the `_rels` folder and open `.rels` in Notepad
-7. Add this line before the closing `</Relationships>` tag:
-```xml
-<Relationship Id="rId5" Type="http://schemas.microsoft.com/office/2007/relationships/ui/extensibility" Target="customUI/customUI.xml"/>
-```
-8. Save and close `.rels`
-9. Select everything **inside** the `PPTTools` folder (not the folder itself)
-10. Right click > Send to > Compressed (zipped) folder
-11. Name it `PPTTools.zip`, then rename it to `PPTTools.pptm`
-12. Move it back to `C:\Users\[You]\AppData\Roaming\Microsoft\AddIns\`
-13. Open it in PowerPoint — the **PPT Tools** tab should appear
-
-### 4 — Enable Macros
-
-Go to File > Options > Trust Center > Trust Center Settings > Macro Settings and select **Enable all macros**.
-
-### 5 — Add to Quick Access Toolbar (Optional)
-
-Right click any button in the PPT Tools tab and select **Add to Quick Access Toolbar** for one-click access.
-
-### 6 — Convert to .ppam (Optional, Recommended)
-
-Once everything is working, convert to a proper add-in so it loads automatically:
-
-1. Close `PPTTools.pptm` in PowerPoint
-2. Rename to `PPTTools.zip` and extract
-3. Open `[Content_Types].xml` in Notepad
-4. Change every instance of `pptm` to `ppam`
-5. Save, rezip, rename to `PPTTools.ppam`
-6. In PowerPoint: File > Options > Add-ins > Manage: PowerPoint Add-ins > Go > Add
-7. Browse to and enable `PPTTools.ppam`
+| Convert to PDF | Export to PDF — prompts you to choose the save location |
 
 ---
 
 ## Selection Behavior
 
 For commands that reference the **first selected shape** (Match, Stretch), select the reference shape first, then hold **Shift** to add the remaining shapes. PowerPoint passes shapes in z-order, not click order, so the first shape in z-order among your selection acts as the reference.
+
+---
+
+# Quick Install (for users)
+
+If you just want to use the tool, this is all you need. No coding required.
+
+### 1 — Download the add-in
+
+Go to the [Releases page](https://github.com/brandonkw123/ppt-tools/releases) and download `PPTTools.ppam` from the latest release.
+
+### 2 — Place it in the PowerPoint AddIns folder
+
+1. Open File Explorer
+2. In the address bar, type `%AppData%\Microsoft\AddIns` and press Enter
+3. Move the downloaded `PPTTools.ppam` into this folder
+
+### 3 — Register the add-in
+
+1. Open PowerPoint
+2. File > Options > Add-ins
+3. At the bottom, set the **Manage** dropdown to **PowerPoint Add-ins** and click **Go**
+4. Click **Add**, select `PPTTools.ppam`, and confirm
+5. If prompted about macros, choose **Enable Macros**
+
+### 4 — Enable macros (if the buttons don't run)
+
+If the tab appears but clicking buttons does nothing, macros are disabled:
+
+1. File > Options > Trust Center > Trust Center Settings > Macro Settings
+2. Select **Enable all macros**
+3. Click OK, then close and reopen PowerPoint
+
+The **PPT Tools** tab will now appear on every presentation you open.
+
+### Optional — Add buttons to the Quick Access Toolbar
+
+Right click any button in the PPT Tools tab and select **Add to Quick Access Toolbar** for one-click access.
+
+---
+
+# Building from Source (for developers)
+
+Only needed if you want to modify the commands or rebuild the add-in yourself.
+
+### Requirements
+- Microsoft PowerPoint (Windows)
+- Microsoft Outlook (for email commands)
+- [Office RibbonX Editor](https://github.com/fernandreu/office-ribbonx-editor/releases) (for injecting the ribbon XML)
+
+### 1 — Create the macro-enabled presentation
+1. Open PowerPoint, create a new blank presentation
+2. File > Save As
+3. In the save dialog address bar, type `%AppData%\Microsoft\AddIns` and press Enter
+4. Set "Save as type" to **PowerPoint Macro-Enabled Presentation (*.pptm)**
+5. Name it `PPTTools` and save
+
+### 2 — Import the VBA modules
+1. If the Developer tab isn't visible: File > Options > Customize Ribbon > check **Developer** > OK
+2. Developer tab > Visual Basic
+3. Right click the `PPTTools` project in the left panel > Import File
+4. Import each `.bas` file from the `src/` folder: `modGlobals`, `modPosition`, `modSize`, `modUtilities`
+5. Remove the default Module1 if present (right click > Remove > No)
+6. Save and close the VBA editor
+
+### 3 — Inject the ribbon XML
+1. Close `PPTTools.pptm` in PowerPoint completely
+2. Open the Office RibbonX Editor
+   - If Windows Defender blocks it: click **More info** > **Run anyway**
+3. File > Open, select `PPTTools.pptm`
+4. Right click the file in the left panel > **Insert Office 2010 Custom UI Part**
+5. Click the new `customUI14.xml` entry
+6. Paste in the full contents of `ribbon/customUI.xml`
+7. Save and close the editor
+
+### 4 — Verify
+1. Open `PPTTools.pptm`, enable macros if prompted
+2. Confirm the **PPT Tools** tab appears and the buttons work
+
+### 5 — Convert to .ppam
+1. With `PPTTools.pptm` open, File > Save As
+2. Navigate to `%AppData%\Microsoft\AddIns`
+3. Set "Save as type" to **PowerPoint Add-in (*.ppam)**
+4. Keep the name `PPTTools` and save
+5. Keep the `.pptm` — it's your editable source for future changes
+
+### 6 — Register
+Follow the Quick Install registration steps above to load the `.ppam`.
 
 ---
 
