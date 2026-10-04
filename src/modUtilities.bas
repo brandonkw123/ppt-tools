@@ -1,14 +1,18 @@
 Attribute VB_Name = "modUtilities"
 ' ============================================================
-' modUtilities — Email and export commands
+' modUtilities - Email and export commands
 ' ============================================================
 
 Public Sub EmailSelectedSlides(control As IRibbonControl)
-    ' Exports selected slides (from the slide panel) to a new .pptx file
+    ' Saves a copy of the deck containing only the slides selected in the slide panel
     ' and opens a new Outlook email with it attached
 
+    If Application.Windows.Count = 0 Then
+        Beep
+        Exit Sub
+    End If
     If ActiveWindow.Selection.Type <> ppSelectionSlides Then
-        MsgBox "Please select one or more slides in the slide panel.", vbExclamation
+        Beep
         Exit Sub
     End If
 
@@ -20,22 +24,26 @@ Public Sub EmailSelectedSlides(control As IRibbonControl)
     Set sourcePres = ActivePresentation
     Set sr = ActiveWindow.Selection.SlideRange
 
-    ' Create a new blank presentation to copy slides into
-    Set newPres = Presentations.Add(WithWindow:=msoFalse)
-
-    ' Copy each selected slide into the new presentation
-    Dim i As Integer
+    ' Remember the selected slides by ID (IDs survive the copy; indexes shift as slides are deleted)
+    Dim keepIDs As String
+    Dim i As Long
+    keepIDs = "|"
     For i = 1 To sr.Count
-        sr(i).Copy
-        newPres.Slides.Paste
+        keepIDs = keepIDs & sr(i).SlideID & "|"
     Next i
 
-    ' Remove the blank first slide that Presentations.Add creates
-    newPres.Slides(1).Delete
-
-    ' Save to temp location
+    ' Save a full copy so the original theme, layouts and formatting are kept
     tempPath = Environ("TEMP") & "\Selected Slides.pptx"
-    newPres.SaveAs tempPath, ppSaveAsOpenXMLPresentation
+    sourcePres.SaveCopyAs tempPath, ppSaveAsOpenXMLPresentation
+
+    ' Open the copy without a window and delete every slide that wasn't selected
+    Set newPres = Presentations.Open(tempPath, WithWindow:=msoFalse)
+    For i = newPres.Slides.Count To 1 Step -1
+        If InStr(keepIDs, "|" & newPres.Slides(i).SlideID & "|") = 0 Then
+            newPres.Slides(i).Delete
+        End If
+    Next i
+    newPres.Save
     newPres.Close
 
     ' Open Outlook and attach the file
@@ -52,7 +60,7 @@ Public Sub EmailSelectedSlides(control As IRibbonControl)
 End Sub
 
 Public Sub EmailWholeDeck(control As IRibbonControl)
-    ' Saves the current presentation to a temp location and opens
+    ' Saves the current presentation and opens
     ' a new Outlook email with it attached
 
     Dim pres As Presentation
@@ -79,19 +87,38 @@ Public Sub EmailWholeDeck(control As IRibbonControl)
 End Sub
 
 Public Sub ConvertToPDF(control As IRibbonControl)
-    ' One-click export to PDF, saved in the same folder as the presentation
+    ' Export to PDF with a save dialog for the user to choose location
 
     Dim pres As Presentation
     Set pres = ActivePresentation
 
-    If pres.Path = "" Then
-        MsgBox "Please save your presentation before converting to PDF.", vbExclamation
-        Exit Sub
-    End If
+    ' Default file name: the deck's name with its extension swapped for .pdf
+    Dim defaultName As String
+    defaultName = pres.Name
+    If InStrRev(defaultName, ".") > 0 Then defaultName = Left(defaultName, InStrRev(defaultName, ".") - 1)
+    defaultName = defaultName & ".pdf"
+    If pres.Path <> "" Then defaultName = pres.Path & "\" & defaultName
 
-    Dim pdfPath As String
-    pdfPath = pres.Path & "\" & Replace(pres.Name, ".pptx", ".pdf")
-    pdfPath = Replace(pdfPath, ".pptm", ".pdf")
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogSaveAs)
+
+    With fd
+        .Title = "Save as PDF"
+        .InitialFileName = defaultName
+        If .Show <> -1 Then Exit Sub ' User cancelled
+
+        Dim pdfPath As String
+        pdfPath = .SelectedItems(1)
+    End With
+
+    ' The dialog may add a PowerPoint extension (.pptx etc.) - strip it so the
+    ' original deck can never be overwritten, then make sure the name ends in .pdf
+    Dim dotPos As Long
+    dotPos = InStrRev(pdfPath, ".")
+    If dotPos > InStrRev(pdfPath, "\") Then
+        If LCase(Mid(pdfPath, dotPos)) Like ".p[op]*" Then pdfPath = Left(pdfPath, dotPos - 1)
+    End If
+    If LCase(Right(pdfPath, 4)) <> ".pdf" Then pdfPath = pdfPath & ".pdf"
 
     pres.ExportAsFixedFormat pdfPath, ppFixedFormatTypePDF
 

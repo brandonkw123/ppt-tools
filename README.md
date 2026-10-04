@@ -24,26 +24,47 @@ A custom PowerPoint ribbon add-in that adds fast, keyboard-friendly commands for
 | Paste Height | Applies stored height to all selected shapes |
 | Paste Height & Width | Applies stored width and height to all selected shapes |
 
+Size and Stretch commands change only the dimension you asked for, even on pictures and other shapes with Lock Aspect Ratio turned on.
+
 ### Stretch
+Each stretch moves one edge of every selected shape to a line on the reference shape; the opposite edge stays put.
+
 | Command | Behavior |
 |---|---|
-| Stretch Up | Pulls the top edge of all selected shapes up to meet the bottom edge of the first selected |
-| Stretch Down | Pulls the bottom edge of all selected shapes down to meet the top edge of the first selected |
-| Stretch Left | Pulls the left edge of all selected shapes to meet the right edge of the first selected |
-| Stretch Right | Pulls the right edge of all selected shapes to meet the left edge of the first selected |
+| Stretch Up to Meet | Pulls the top edge up to the reference's **bottom** edge, so the shapes touch |
+| Stretch Down to Meet | Pulls the bottom edge down to the reference's **top** edge, so the shapes touch |
+| Stretch Left to Meet | Pulls the left edge to the reference's **right** edge, so the shapes touch |
+| Stretch Right to Meet | Pulls the right edge to the reference's **left** edge, so the shapes touch |
+| Stretch Up to Match | Pulls the top edge to the reference's **top** edge, so the top edges line up |
+| Stretch Down to Match | Pulls the bottom edge to the reference's **bottom** edge, so the bottom edges line up |
+| Stretch Left to Match | Pulls the left edge to the reference's **left** edge, so the left edges line up |
+| Stretch Right to Match | Pulls the right edge to the reference's **right** edge, so the right edges line up |
+
+If the target line is on the wrong side of a shape's fixed edge (the shape would end up with zero or negative size), that shape is skipped and the Windows error sound plays.
 
 ### Utilities
 | Command | Behavior |
 |---|---|
-| Email Selected Slides | Exports slides selected in the slide panel to a new .pptx and opens an Outlook draft with it attached |
+| Email Selected Slides | Saves a copy of the deck containing only the slides selected in the slide panel (original formatting kept) and opens an Outlook draft with it attached |
 | Email Whole Deck | Saves the current presentation and opens an Outlook draft with it attached |
 | Convert to PDF | Export to PDF — prompts you to choose the save location |
+
+### Cleanup
+All cleanup commands act on every slide in the deck. Before removing anything they save a backup copy of the deck to `%TEMP%\PPT Tools backups`.
+
+| Command | Behavior |
+|---|---|
+| Remove All Comments | Deletes every comment (and its replies) in the presentation |
+| Remove All Speaker Notes | Clears the speaker notes text on every slide |
+| Remove Comments + Notes | Both of the above in one step |
 
 ---
 
 ## Selection Behavior
 
-For commands that reference the **first selected shape** (Match, Stretch), select the reference shape first, then hold **Shift** to add the remaining shapes. PowerPoint passes shapes in z-order, not click order, so the first shape in z-order among your selection acts as the reference.
+For commands that use a **reference shape** (Match, Stretch), the reference is the selected shape furthest back in the stacking order (z-order), not the one you clicked first. Use **Send to Back** on a shape to make it the reference.
+
+If a command can't run on the current selection (wrong number of shapes, nothing copied yet, and so on), the Windows error sound plays instead of a popup.
 
 ---
 
@@ -55,11 +76,12 @@ If you just want to use the tool, this is all you need. No coding required.
 
 Go to the [Releases page](https://github.com/brandonkw123/ppt-tools/releases) and download `PPTTools.ppam` from the latest release.
 
-### 2 — Place it in the PowerPoint AddIns folder
+### 2 — Unblock it and place it in the PowerPoint AddIns folder
 
-1. Open File Explorer
-2. In the address bar, type `%AppData%\Microsoft\AddIns` and press Enter
-3. Move the downloaded `PPTTools.ppam` into this folder
+1. Right click the downloaded `PPTTools.ppam` > **Properties**, tick **Unblock** at the bottom, and click **OK**. Windows marks downloaded files, and Office blocks macros in them until they're unblocked. If there's no Unblock checkbox, the file is already unblocked.
+2. Open File Explorer
+3. In the address bar, type `%AppData%\Microsoft\AddIns` and press Enter
+4. Move `PPTTools.ppam` into this folder
 
 ### 3 — Register the add-in
 
@@ -69,13 +91,13 @@ Go to the [Releases page](https://github.com/brandonkw123/ppt-tools/releases) an
 4. Click **Add**, select `PPTTools.ppam`, and confirm
 5. If prompted about macros, choose **Enable Macros**
 
-### 4 — Enable macros (if the buttons don't run)
+### 4 — If the buttons don't run
 
-If the tab appears but clicking buttons does nothing, macros are disabled:
+If the tab appears but clicking buttons does nothing:
 
-1. File > Options > Trust Center > Trust Center Settings > Macro Settings
-2. Select **Enable all macros**
-3. Click OK, then close and reopen PowerPoint
+1. Check that `PPTTools.ppam` is in `%AppData%\Microsoft\AddIns` (PowerPoint trusts add-ins in that folder by default) and that you unblocked it in step 2
+2. Close and reopen PowerPoint
+3. On a company-managed PC, IT policy may block macros entirely. If so, ask your IT team; don't lower your macro security settings
 
 The **PPT Tools** tab will now appear on every presentation you open.
 
@@ -92,46 +114,26 @@ Only needed if you want to modify the commands or rebuild the add-in yourself.
 ### Requirements
 - Microsoft PowerPoint (Windows)
 - Microsoft Outlook (for email commands)
-- [Office RibbonX Editor](https://github.com/fernandreu/office-ribbonx-editor/releases) (for injecting the ribbon XML)
 
-### 1 — Create the macro-enabled presentation
-1. Open PowerPoint, create a new blank presentation
-2. File > Save As
-3. In the save dialog address bar, type `%AppData%\Microsoft\AddIns` and press Enter
-4. Set "Save as type" to **PowerPoint Macro-Enabled Presentation (*.pptm)**
-5. Name it `PPTTools` and save
+### Repo layout
+| Path | What it is |
+|---|---|
+| `src/*.bas` | VBA source for every command (plain ASCII, imported into the deck) |
+| `ribbon/customUI.xml` | The ribbon tab definition: buttons, labels, icons |
+| `deck/` | The unzipped `PPTTools.pptm` the add-in is built from, including its compiled macros |
+| `build.ps1` | Packs `deck/` into a `.pptm` and unpacks it back |
+| `build/` | Build output (not committed) |
 
-### 2 — Import the VBA modules
-1. If the Developer tab isn't visible: File > Options > Customize Ribbon > check **Developer** > OK
-2. Developer tab > Visual Basic
-3. Right click the `PPTTools` project in the left panel > Import File
-4. Import each `.bas` file from the `src/` folder: `modGlobals`, `modPosition`, `modSize`, `modUtilities`
-5. Remove the default Module1 if present (right click > Remove > No)
-6. Save and close the VBA editor
+### Rebuilding after a change
+1. Edit `src/*.bas` and/or `ribbon/customUI.xml`
+2. In PowerShell, from the repo folder: `.\build.ps1 pack` (copies the ribbon XML into the deck and creates `build\PPTTools.pptm`)
+3. **If you changed any `.bas` file:** open `build\PPTTools.pptm`, press **Alt+F11**, right click each changed module > **Remove** > **No**, then **File > Import File** and pick the new `.bas` from `src\`. Press **Ctrl+S**.
+4. File > Save As > **PowerPoint Add-in (*.ppam)** > save as `build\PPTTools.ppam`, then close PowerPoint
+5. `.\build.ps1 unpack` (copies the saved `.pptm` back into `deck/` so the stored macros stay current)
+6. To install: copy `build\PPTTools.ppam` into `%AppData%\Microsoft\AddIns`, replacing the old one
+7. To release: attach `build\PPTTools.ppam` to a new GitHub Release
 
-### 3 — Inject the ribbon XML
-1. Close `PPTTools.pptm` in PowerPoint completely
-2. Open the Office RibbonX Editor
-   - If Windows Defender blocks it: click **More info** > **Run anyway**
-3. File > Open, select `PPTTools.pptm`
-4. Right click the file in the left panel > **Insert Office 2010 Custom UI Part**
-5. Click the new `customUI14.xml` entry
-6. Paste in the full contents of `ribbon/customUI.xml`
-7. Save and close the editor
-
-### 4 — Verify
-1. Open `PPTTools.pptm`, enable macros if prompted
-2. Confirm the **PPT Tools** tab appears and the buttons work
-
-### 5 — Convert to .ppam
-1. With `PPTTools.pptm` open, File > Save As
-2. Navigate to `%AppData%\Microsoft\AddIns`
-3. Set "Save as type" to **PowerPoint Add-in (*.ppam)**
-4. Keep the name `PPTTools` and save
-5. Keep the `.pptm` — it's your editable source for future changes
-
-### 6 — Register
-Follow the Quick Install registration steps above to load the `.ppam`.
+Only use built-in icon names (`imageMso`) that exist in PowerPoint. An unknown name doesn't cause an error; the button just shows no icon.
 
 ---
 

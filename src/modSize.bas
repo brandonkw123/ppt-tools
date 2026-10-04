@@ -1,259 +1,182 @@
 Attribute VB_Name = "modSize"
 ' ============================================================
-' modSize — Size and stretch commands
+' modSize - Size and stretch commands
 ' ============================================================
+
+' Sets a shape's width and/or height (pass -1 to leave one unchanged).
+' Lock Aspect Ratio is switched off while resizing so only the requested
+' dimension changes, then restored.
+Private Sub SetSize(shp As Shape, ByVal newW As Single, ByVal newH As Single)
+    Dim lockState As MsoTriState
+    lockState = shp.LockAspectRatio
+    shp.LockAspectRatio = msoFalse
+    If newW >= 0 Then shp.Width = newW
+    If newH >= 0 Then shp.Height = newH
+    shp.LockAspectRatio = lockState
+End Sub
 
 ' --- Match to first selected ---
 
 Public Sub MatchWidth(control As IRibbonControl)
-    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
     Dim sr As ShapeRange
-    Set sr = ActiveWindow.Selection.ShapeRange
+    Set sr = SelectedShapes(2)
+    If sr Is Nothing Then Exit Sub
 
-    If sr.Count < 2 Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
-    Dim refW As Single
-    refW = sr(1).Width
     Dim i As Integer
-
     For i = 2 To sr.Count
-        sr(i).Width = refW
+        SetSize sr(i), sr(1).Width, -1
     Next i
 End Sub
 
 Public Sub MatchHeight(control As IRibbonControl)
-    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
     Dim sr As ShapeRange
-    Set sr = ActiveWindow.Selection.ShapeRange
+    Set sr = SelectedShapes(2)
+    If sr Is Nothing Then Exit Sub
 
-    If sr.Count < 2 Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
-    Dim refH As Single
-    refH = sr(1).Height
     Dim i As Integer
-
     For i = 2 To sr.Count
-        sr(i).Height = refH
+        SetSize sr(i), -1, sr(1).Height
     Next i
 End Sub
 
 Public Sub MatchWidthAndHeight(control As IRibbonControl)
-    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
     Dim sr As ShapeRange
-    Set sr = ActiveWindow.Selection.ShapeRange
+    Set sr = SelectedShapes(2)
+    If sr Is Nothing Then Exit Sub
 
-    If sr.Count < 2 Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
-    Dim refW As Single, refH As Single
-    refW = sr(1).Width
-    refH = sr(1).Height
     Dim i As Integer
-
     For i = 2 To sr.Count
-        sr(i).Width = refW
-        sr(i).Height = refH
+        SetSize sr(i), sr(1).Width, sr(1).Height
     Next i
 End Sub
 
 ' --- Copy / Paste size ---
 
 Public Sub CopySize(control As IRibbonControl)
-    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
-        MsgBox "Please select one shape.", vbExclamation
-        Exit Sub
-    End If
+    Dim sr As ShapeRange
+    Set sr = SelectedShapes(1, 1)
+    If sr Is Nothing Then Exit Sub
 
-    If ActiveWindow.Selection.ShapeRange.Count <> 1 Then
-        MsgBox "Please select one shape.", vbExclamation
-        Exit Sub
-    End If
-
-    storedWidth = ActiveWindow.Selection.ShapeRange(1).Width
-    storedHeight = ActiveWindow.Selection.ShapeRange(1).Height
+    storedWidth = sr(1).Width
+    storedHeight = sr(1).Height
     hasCopiedSize = True
 End Sub
 
 Public Sub PasteWidth(control As IRibbonControl)
-    If Not hasCopiedSize Then Exit Sub
-
-    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
-        MsgBox "Please select one or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
-    Dim sr As ShapeRange
-    Set sr = ActiveWindow.Selection.ShapeRange
-    Dim i As Integer
-
-    For i = 1 To sr.Count
-        sr(i).Width = storedWidth
-    Next i
+    PasteSize True, False
 End Sub
 
 Public Sub PasteHeight(control As IRibbonControl)
-    If Not hasCopiedSize Then Exit Sub
-
-    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
-        MsgBox "Please select one or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
-    Dim sr As ShapeRange
-    Set sr = ActiveWindow.Selection.ShapeRange
-    Dim i As Integer
-
-    For i = 1 To sr.Count
-        sr(i).Height = storedHeight
-    Next i
+    PasteSize False, True
 End Sub
 
 Public Sub PasteWidthAndHeight(control As IRibbonControl)
-    If Not hasCopiedSize Then Exit Sub
+    PasteSize True, True
+End Sub
 
-    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
-        MsgBox "Please select one or more shapes.", vbExclamation
+Private Sub PasteSize(doWidth As Boolean, doHeight As Boolean)
+    If Not hasCopiedSize Then
+        Beep
         Exit Sub
     End If
 
     Dim sr As ShapeRange
-    Set sr = ActiveWindow.Selection.ShapeRange
-    Dim i As Integer
+    Set sr = SelectedShapes(1)
+    If sr Is Nothing Then Exit Sub
 
+    Dim i As Integer
     For i = 1 To sr.Count
-        sr(i).Width = storedWidth
-        sr(i).Height = storedHeight
+        SetSize sr(i), IIf(doWidth, storedWidth, -1), IIf(doHeight, storedHeight, -1)
     Next i
 End Sub
 
 ' --- Stretch commands ---
-' In each stretch command:
-'   sr(1) is the reference shape
-'   All other shapes have one edge pulled to meet the reference boundary
-'   The opposite edge stays fixed (achieved by adjusting Top/Left AND Height/Width together)
+' sr(1) - the selected shape furthest back - is the reference shape.
+' Every other selected shape has one edge moved to a line on the reference;
+' the opposite edge stays fixed.
+'   "to Meet":  the edge moves to the reference's NEAR edge, so the shapes touch
+'               (Stretch Right to Meet: right edge -> reference's left edge)
+'   "to Match": the edge moves to the reference's SAME edge, so the edges line up
+'               (Stretch Right to Match: right edge -> reference's right edge)
+' If that line is on the wrong side of a shape's fixed edge, the shape would need
+' zero or negative size, so it is skipped and the error sound plays.
 
 Public Sub StretchUp(control As IRibbonControl)
-    ' Pulls the top edge of each shape up to meet the bottom edge of the reference shape
-    ' Bottom edge of each shape stays fixed
-    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
-    Dim sr As ShapeRange
-    Set sr = ActiveWindow.Selection.ShapeRange
-
-    If sr.Count < 2 Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
-    Dim refBottom As Single
-    refBottom = sr(1).Top + sr(1).Height
-    Dim i As Integer
-
-    For i = 2 To sr.Count
-        Dim oldBottom As Single
-        oldBottom = sr(i).Top + sr(i).Height
-        sr(i).Top = refBottom
-        sr(i).Height = oldBottom - refBottom
-    Next i
+    StretchShapes "Up", False
 End Sub
 
 Public Sub StretchDown(control As IRibbonControl)
-    ' Pulls the bottom edge of each shape down to meet the top edge of the reference shape
-    ' Top edge of each shape stays fixed
-    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
-    Dim sr As ShapeRange
-    Set sr = ActiveWindow.Selection.ShapeRange
-
-    If sr.Count < 2 Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
-    Dim refTop As Single
-    refTop = sr(1).Top
-    Dim i As Integer
-
-    For i = 2 To sr.Count
-        sr(i).Height = refTop - sr(i).Top
-    Next i
+    StretchShapes "Down", False
 End Sub
 
 Public Sub StretchLeft(control As IRibbonControl)
-    ' Pulls the left edge of each shape to meet the right edge of the reference shape
-    ' Right edge of each shape stays fixed
-    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
-    Dim sr As ShapeRange
-    Set sr = ActiveWindow.Selection.ShapeRange
-
-    If sr.Count < 2 Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
-
-    Dim refRight As Single
-    refRight = sr(1).Left + sr(1).Width
-    Dim i As Integer
-
-    For i = 2 To sr.Count
-        Dim oldRight As Single
-        oldRight = sr(i).Left + sr(i).Width
-        sr(i).Left = refRight
-        sr(i).Width = oldRight - refRight
-    Next i
+    StretchShapes "Left", False
 End Sub
 
 Public Sub StretchRight(control As IRibbonControl)
-    ' Pulls the right edge of each shape to meet the left edge of the reference shape
-    ' Left edge of each shape stays fixed
-    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
+    StretchShapes "Right", False
+End Sub
 
+Public Sub StretchUpMatch(control As IRibbonControl)
+    StretchShapes "Up", True
+End Sub
+
+Public Sub StretchDownMatch(control As IRibbonControl)
+    StretchShapes "Down", True
+End Sub
+
+Public Sub StretchLeftMatch(control As IRibbonControl)
+    StretchShapes "Left", True
+End Sub
+
+Public Sub StretchRightMatch(control As IRibbonControl)
+    StretchShapes "Right", True
+End Sub
+
+Private Sub StretchShapes(direction As String, toMatch As Boolean)
     Dim sr As ShapeRange
-    Set sr = ActiveWindow.Selection.ShapeRange
+    Set sr = SelectedShapes(2)
+    If sr Is Nothing Then Exit Sub
 
-    If sr.Count < 2 Then
-        MsgBox "Please select two or more shapes.", vbExclamation
-        Exit Sub
-    End If
+    ' The line on the reference shape that the moving edge goes to
+    Dim ref As Shape, target As Single
+    Set ref = sr(1)
+    Select Case direction
+        Case "Up":    target = IIf(toMatch, ref.Top, ref.Top + ref.Height)
+        Case "Down":  target = IIf(toMatch, ref.Top + ref.Height, ref.Top)
+        Case "Left":  target = IIf(toMatch, ref.Left, ref.Left + ref.Width)
+        Case "Right": target = IIf(toMatch, ref.Left + ref.Width, ref.Left)
+    End Select
 
-    Dim refLeft As Single
-    refLeft = sr(1).Left
-    Dim i As Integer
+    Dim i As Integer, shp As Shape, newSize As Single, skipped As Boolean
 
     For i = 2 To sr.Count
-        sr(i).Width = refLeft - sr(i).Left
+        Set shp = sr(i)
+        Select Case direction
+            Case "Up"       ' bottom edge stays fixed
+                newSize = shp.Top + shp.Height - target
+                If newSize > 0 Then
+                    shp.Top = target
+                    SetSize shp, -1, newSize
+                Else
+                    skipped = True
+                End If
+            Case "Down"     ' top edge stays fixed
+                newSize = target - shp.Top
+                If newSize > 0 Then SetSize shp, -1, newSize Else skipped = True
+            Case "Left"     ' right edge stays fixed
+                newSize = shp.Left + shp.Width - target
+                If newSize > 0 Then
+                    shp.Left = target
+                    SetSize shp, newSize, -1
+                Else
+                    skipped = True
+                End If
+            Case "Right"    ' left edge stays fixed
+                newSize = target - shp.Left
+                If newSize > 0 Then SetSize shp, newSize, -1 Else skipped = True
+        End Select
     Next i
+
+    If skipped Then Beep
 End Sub
