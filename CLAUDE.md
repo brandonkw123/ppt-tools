@@ -35,7 +35,12 @@ PowerPoint ribbon add-in (VBA). Repo: https://github.com/brandonkw123/ppt-tools 
 - Releases: attach `build\PPTTools.ppam` to a GitHub Release. Users must Unblock the downloaded file (Properties > Unblock).
 - Install options:
   - **Manual install via File > Options > Add-ins must always stay available**, because many users are on company-managed PCs where scripts are blocked.
-  - The user also wants an optional one-step installer for personal PCs (decided 2026-10-04).
+  - Optional installer for personal PCs (decided 2026-10-04): `installer\Install PPT Tools.cmd` and `Uninstall PPT Tools.cmd`.
+    - The user chose a zip over an unsigned .exe or a self-downloading script.
+    - Install copies the .ppam into AddIns, runs Unblock-File, and adds the HKCU AddIns registry entry.
+    - Uninstall removes both.
+    - `.cmd` files must keep CRLF line endings, which `.gitattributes` enforces.
+    - Code signing (Azure Artifact Signing, about $9.99/month) was discussed and declined for now.
 
 ## Releasing
 - GitHub CLI is installed (winget, user scope) at `%LOCALAPPDATA%\Microsoft\WinGet\Packages\GitHub.cli_Microsoft.Winget.Source_8wekyb3d8bbwe\bin\gh.exe` and signed in as brandonkw123. Old shells may not have it on PATH yet.
@@ -43,8 +48,9 @@ PowerPoint ribbon add-in (VBA). Repo: https://github.com/brandonkw123/ppt-tools 
   1. Add a CHANGELOG entry for the new version.
   2. Build, verify and install the add-in.
   3. Commit and push.
-  4. Run `gh release create vX.Y.Z build/PPTTools.ppam --repo brandonkw123/ppt-tools --target main --title "PPT Tools vX.Y.Z" --notes-file <notes>`. The notes are the install steps plus that version's CHANGELOG section; see release v1.1.0 for the format.
-- The README's install steps link to the Releases page, so the asset must be named `PPTTools.ppam`.
+  4. Run `.\build.ps1 release` to create `build\PPT-Tools.zip`.
+  5. Run `gh release create vX.Y.Z build/PPTTools.ppam build/PPT-Tools.zip --repo brandonkw123/ppt-tools --target main --title "PPT Tools vX.Y.Z" --notes-file <notes>`. The notes are the install steps plus that version's CHANGELOG section; see release v1.1.0 for the format.
+- The README's install steps name the release assets, so keep them as `PPTTools.ppam` and `PPT-Tools.zip`.
 
 ## Code conventions
 - Ribbon callbacks are `Public Sub Name(control As IRibbonControl)`.

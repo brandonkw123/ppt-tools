@@ -70,11 +70,23 @@ If a command can't run on the current selection (wrong number of shapes, nothing
 
 # Quick Install (for users)
 
-If you just want to use the tool, this is all you need. No coding required.
+If you just want to use the tool, this is all you need. No coding required. **Close PowerPoint first.**
+
+## Option A — Installer (personal PCs)
+
+1. From the [Releases page](https://github.com/brandonkw123/ppt-tools/releases), download `PPT-Tools.zip` from the latest release
+2. Right click it > **Extract All** > **Extract**
+3. In the extracted folder, double-click **Install PPT Tools.cmd**
+   - If Windows shows **"Windows protected your PC"**, click **More info** > **Run anyway**. This appears because the installer isn't code-signed; you can open the `.cmd` in Notepad to see exactly what it does.
+4. Open PowerPoint — the **PPT Tools** tab is there
+
+To update, run the newer installer the same way. To remove, run **Uninstall PPT Tools.cmd**.
+
+## Option B — Manual install (company-managed PCs, or if the installer is blocked)
 
 ### 1 — Download the add-in
 
-Go to the [Releases page](https://github.com/brandonkw123/ppt-tools/releases) and download `PPTTools.ppam` from the latest release.
+From the [Releases page](https://github.com/brandonkw123/ppt-tools/releases), download `PPTTools.ppam` from the latest release.
 
 ### 2 — Unblock it and place it in the PowerPoint AddIns folder
 
@@ -95,7 +107,7 @@ Go to the [Releases page](https://github.com/brandonkw123/ppt-tools/releases) an
 
 If the tab appears but clicking buttons does nothing:
 
-1. Check that `PPTTools.ppam` is in `%AppData%\Microsoft\AddIns` (PowerPoint trusts add-ins in that folder by default) and that you unblocked it in step 2
+1. Check that `PPTTools.ppam` is in `%AppData%\Microsoft\AddIns` (PowerPoint trusts add-ins in that folder by default) and, for a manual install, that you unblocked it
 2. Close and reopen PowerPoint
 3. On a company-managed PC, IT policy may block macros entirely. If so, ask your IT team; don't lower your macro security settings
 
@@ -131,7 +143,7 @@ Only needed if you want to modify the commands or rebuild the add-in yourself.
 4. File > Save As > **PowerPoint Add-in (*.ppam)** > save as `build\PPTTools.ppam`, then close PowerPoint
 5. `.\build.ps1 unpack` (copies the saved `.pptm` back into `deck/` so the stored macros stay current)
 6. To install: copy `build\PPTTools.ppam` into `%AppData%\Microsoft\AddIns`, replacing the old one
-7. To release: attach `build\PPTTools.ppam` to a new GitHub Release
+7. To release: `.\build.ps1 release` (creates `build\PPT-Tools.zip` with the add-in and the installer scripts from `installer\`), then attach both `build\PPTTools.ppam` and `build\PPT-Tools.zip` to a new GitHub Release
 
 Only use built-in icon names (`imageMso`) that exist in PowerPoint. An unknown name doesn't cause an error; the button just shows no icon.
 

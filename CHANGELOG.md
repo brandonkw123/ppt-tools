@@ -6,6 +6,7 @@
 - Stretch to Match group: Stretch Up/Down/Left/Right to Match line up the moving edge with the same edge of the reference shape (the existing Stretch commands are now named "to Meet")
 - Cleanup group: Remove All Comments, Remove All Speaker Notes, Remove Comments + Notes (whole deck; a backup copy of the deck is saved to `%TEMP%\PPT Tools backups` first)
 - Hover descriptions on the Stretch buttons
+- One-step installer for personal PCs: `PPT-Tools.zip` on the Releases page contains the add-in plus `Install PPT Tools.cmd` / `Uninstall PPT Tools.cmd` (manual install still documented for company-managed PCs)
 - `build.ps1` and `deck/` folder so the add-in can be rebuilt from this repo
 - `LICENSE` file (MIT)
 
