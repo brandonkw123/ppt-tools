@@ -33,7 +33,18 @@ PowerPoint ribbon add-in (VBA). Repo: https://github.com/brandonkw123/ppt-tools 
   - Replacing the file is enough to update it, with PowerPoint closed.
 - `PPTTools.pptm` in that folder is a legacy copy. The source is now this repo.
 - Releases: attach `build\PPTTools.ppam` to a GitHub Release. Users must Unblock the downloaded file (Properties > Unblock).
-- No installer scripts or .exe (user decision): many users are on company-managed PCs. Install is manual via File > Options > Add-ins.
+- Install options:
+  - **Manual install via File > Options > Add-ins must always stay available**, because many users are on company-managed PCs where scripts are blocked.
+  - The user also wants an optional one-step installer for personal PCs (decided 2026-10-04).
+
+## Releasing
+- GitHub CLI is installed (winget, user scope) at `%LOCALAPPDATA%\Microsoft\WinGet\Packages\GitHub.cli_Microsoft.Winget.Source_8wekyb3d8bbwe\bin\gh.exe` and signed in as brandonkw123. Old shells may not have it on PATH yet.
+- Steps:
+  1. Add a CHANGELOG entry for the new version.
+  2. Build, verify and install the add-in.
+  3. Commit and push.
+  4. Run `gh release create vX.Y.Z build/PPTTools.ppam --repo brandonkw123/ppt-tools --target main --title "PPT Tools vX.Y.Z" --notes-file <notes>`. The notes are the install steps plus that version's CHANGELOG section; see release v1.1.0 for the format.
+- The README's install steps link to the Releases page, so the asset must be named `PPTTools.ppam`.
 
 ## Code conventions
 - Ribbon callbacks are `Public Sub Name(control As IRibbonControl)`.
